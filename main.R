@@ -289,7 +289,7 @@ mosum.tavc = function (x, G = bandwidths.default(length(x), G.min = max(20, ceil
 
 
 wbs2.tavc = function(x, R = 100, M = floor(2.5*sqrt(length(x))), v.est.method = c("trimmed.mean","median","MAD","median.pairwise")[1], 
-                     global.est = TRUE, N3 = 5, min.int.len = fllor(0.05*length(x)), th_const = 1.3){
+                     global.est = TRUE, N3 = 5, min.int.len = fllor(0.05*length(x)), th.const = 1.3){
   
   # WBS2 algorithm using the robust TAVC estimator. All parameters inherited from robust.tavc.est, except:
   #
@@ -297,7 +297,7 @@ wbs2.tavc = function(x, R = 100, M = floor(2.5*sqrt(length(x))), v.est.method = 
   #     The window size is given by window.len = N_3*L.
   # R - the number of systematic intervals to use at each iteration of the WBS2 algorithm.
   # min.int.len - the minimum interval length considered for the WBS2 algorithm.
-  # th_const - the threshold constant used by WBS2 to test for change points.
+  # th.const - the threshold constant used by WBS2 to test for change points.
   
   solutions.nested <- TRUE
   solution.set <- list()
@@ -350,7 +350,7 @@ wbs2.tavc = function(x, R = 100, M = floor(2.5*sqrt(length(x))), v.est.method = 
   
   class(ret) <- "cptpath"
   
-  cpt.obj = breakfast::model.thresh(ret, sigma = 1, th_const = th_const)
+  cpt.obj = breakfast::model.thresh(ret, sigma = 1, th_const = th.const)
   
   
 }
