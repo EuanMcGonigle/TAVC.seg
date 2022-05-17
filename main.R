@@ -297,8 +297,7 @@ wbs2.tavc = function(x, R = 100, M = floor(2.5*sqrt(length(x))), v.est.method = 
   #     The window size is given by window.len = N_3*L.
   # R - the number of systematic intervals to use at each iteration of the WBS2 algorithm.
   # min.int.len - the minimum interval length considered for the WBS2 algorithm.
-  
-  #The function returns a WBS2 object, which can then be used in conjunction with the breakfast::model.thresh function to detect mean changes.
+  # th_const - the threshold constant used by WBS2 to test for change points.
   
   solutions.nested <- TRUE
   solution.set <- list()
