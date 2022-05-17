@@ -4,29 +4,47 @@ require(breakfast)
 robust.tavc.est = function(x, L, M = floor(2.5*sqrt(length(x))), b.max = min(floor(L/2),floor(M/2))-1, global.est = TRUE,
                             window.len = 10*(min(floor(L/2),floor(M/2))), v.est.method = c("trimmed.mean","median","MAD","median.pairwise")[1]){
   
+  #main function for robustly estimating the TAVC at scale L of a univariate time series. 
+  # Parameters needed for the function are:
+  #
+  # x - the data
+  # L - the scale at which to estimate the TAVC. L=2G, the block size used in estimation.
+  # M - the maximum estimation scale. If L is set such that L>M, then the TAVC is estimated at scale M.
+  # b.max - the number of starting points to use for the global TAVC estimator. Helps with robustness.
+  # global.est - logical variable, set TRUE to calculate the TAVC estimator assuming stationarity of the error process. Set FALSE to
+  #             compute a time-varying estimator of the TAVC.
+  # window.len - if global.est = FALSE, then window.len sets the size of window over which the local TAVC is estimated.
+  # v.est.method - method of plug-in estimation for the varaiance parameter v. Recommended to choose trimmed.mean or median.
+  
+  # For applying the bottom-up MOSUM or WBS2 algotihms with the robust TAVC estimation procedure, use the functions mosum.tavc and WBS2.tavc
+  # NOTE: to apply the robust TAVC estimation with bottom-up MOSUM or WBS2, the code requires the R packages mosum and breakfast
+  
+  
   if (sum(is.na(x))!=0){
     stop("Data contains mising values.")
   }
   if (!is.atomic(x)){
     stop("Data is not atomic")
   }
-  
+
   data.len = length(x)
 
   G = floor(L/2)  
   N1 = floor((data.len-G)/G)
   Smax = floor(M/2)
+  
+  if (b.max>=G){
+    warning("b.max is set too large. Setting b.max = G-1 instead.")
+    b.max = G-1
+  }
 
   
   if(global.est==TRUE){
     if(G>=Smax){
-      G=Smax
-      x.v = mosum(x, G = Smax, var.custom = rep(1,data.len), var.est.method = "custom", 
-                  boundary.extension = FALSE)$stat^2
-      
+      G = Smax
+      x.v = mosum(x, G = Smax, var.custom = rep(1,data.len), var.est.method = "custom", boundary.extension = FALSE)$stat^2
     } else{
-      x.v = mosum(x, G = G, var.custom = rep(1,data.len), var.est.method = "custom",
-                  boundary.extension = FALSE)$stat^2
+      x.v = mosum(x, G = G, var.custom = rep(1,data.len), var.est.method = "custom",boundary.extension = FALSE)$stat^2
     }
     
     var.ests = rep(0,b.max)
@@ -61,7 +79,7 @@ robust.tavc.est = function(x, L, M = floor(2.5*sqrt(length(x))), b.max = min(flo
       
     }
     
-    final.var.est = rep(median(var.ests, na.rm = TRUE),data.len)
+    final.var.est = rep(median(var.ests, na.rm = TRUE), data.len)
     
   } else{
     
@@ -138,46 +156,6 @@ robust.tavc.est = function(x, L, M = floor(2.5*sqrt(length(x))), b.max = min(flo
 }
 
 
-robustfun = function(x)
-{
-  if (x >= 1)
-  {
-    y = log(2)
-    
-  }
-  
-  if ((x>= 0)&&(x<1))
-  {
-    y = - log(1-x+x^2/2)
-    
-  }
-  if ((x<=0)&& (x> -1))
-  {
-    y = log(1+x+x^2/2)
-    
-  }
-  if  (x<= -1)
-  {
-    y = -log(2)
-    
-  }
-  return(y)
-  
-}
-
-robustfun2 = function(x,c,alpha)
-{
-
-  y     = x 
-  for (i in (1: length(x)))
-  {
-    y[i]     = alpha^(-1)*robustfun(alpha*(x[i]-c))
-  }
-  ysum = sum(y)/length(x)
-  return(ysum)
-}
-
-
 mosum.tavc = function (x, G = bandwidths.default(length(x), G.min = max(20, ceiling(0.05 * length(x)))), 
                        threshold = c("critical.value","custom")[1], alpha = 0.1, threshold.function = NULL, 
                        criterion = c("eta", "epsilon")[1], eta = 0.4, epsilon = 0.2, global.est = TRUE, 
@@ -185,6 +163,12 @@ mosum.tavc = function (x, G = bandwidths.default(length(x), G.min = max(20, ceil
                        boundary.extension = FALSE, do.confint = FALSE, level = 0.05, N_reps = 1000,
                        M = floor(sqrt(2.5*length(x))), b.max = min(G,floor(M/2))-1,  N3 = 5, plot = FALSE, ...) 
 {
+  
+  # Multiscale MOSUM procedure, using the TAVC estimator. All parameters inherited from robust.tavc.est and mosum::multiscale.bottomUp, except:
+  #
+  # N3 - Used instead of window.len, controls the size of window for the local TAVC estimator, needed if global.est = FALSE. 
+  #     The window size is given by window.len = N_3*L.
+  
   n <- length(x)
   
   TAVC.output = rep(list(rep(0,n)), length(G))
@@ -203,7 +187,7 @@ mosum.tavc = function (x, G = bandwidths.default(length(x), G.min = max(20, ceil
   }
   
   TAVC.output[[(num.tavc.ests+1)]] = robust.tavc.est(x = x, L = M, M = M, b.max = Smax-1, global.est = global.est, 
-                                                      window.len = M*N3, v.est.method = v.est.method)
+                                                     window.len = M*N3, v.est.method = v.est.method)
   k = num.tavc.ests+1
   while(k<length(G)){
     TAVC.output[[(k+1)]] = TAVC.output[[k]]
@@ -249,7 +233,7 @@ mosum.tavc = function (x, G = bandwidths.default(length(x), G.min = max(20, ceil
                 criterion = criterion, eta = eta, epsilon = epsilon, var.est.method = "custom", var.custom = TAVC.output[[i]])
       
       test.stats[[i]] = m$stat
-
+      
     }
     else {
       threshold_val <- threshold.function(G, n, alpha)
@@ -294,7 +278,7 @@ mosum.tavc = function (x, G = bandwidths.default(length(x), G.min = max(20, ceil
                         G = G, alpha = alpha, threshold = threshold, threshold.function = threshold.function, 
                         criterion = "eta", eta = eta, do.confint = FALSE, ci = NA, test.stats = test.stats, 
                         TAVC.ests = list(L.vals = L.values, ests = t(matrix(unlist(TAVC.output), ncol = length(TAVC.output))))), 
-                        class = "multiscale.cpts")
+                   class = "multiscale.cpts")
   if (do.confint) {
     ret$ci <- confint.multiscale.cpts(ret, level = level, 
                                       N_reps = N_reps)
@@ -307,6 +291,13 @@ mosum.tavc = function (x, G = bandwidths.default(length(x), G.min = max(20, ceil
 wbs2.tavc = function(x, R = 100, M = floor(2.5*sqrt(length(x))), v.est.method = c("trimmed.mean","median","MAD","median.pairwise")[1], 
                      global.est = TRUE, N3 = 5, min.int.len = fllor(0.05*length(x))){
   
+  # WBS2 algorithm using the robust TAVC estimator. All parameters inherited from robust.tavc.est, except:
+  #
+  # N3 - Used instead of window.len, controls the size of window for the local TAVC estimator, needed if global.est = FALSE. 
+  #     The window size is given by window.len = N_3*L.
+  # R - the number of systematic intervals to use at each iteration of the WBS2 algorithm.
+  # min.int.len - the minimum interval length considered for the WBS2 algorithm.
+  
   solutions.nested <- TRUE
   solution.set <- list()
   
@@ -317,17 +308,17 @@ wbs2.tavc = function(x, R = 100, M = floor(2.5*sqrt(length(x))), v.est.method = 
   
   if(min.len>Smax){
     tavc.ests = t(as.matrix(robust.tavc.est(x = x, L = M, M = M, b.max = Smax-1, global.est = global.est, 
-                                               window.len = M*N3, v.est.method = v.est.method)))
+                                            window.len = M*N3, v.est.method = v.est.method)))
     L.vals = M
   } else{
     tavc.ests = matrix(0,nrow = Smax-min.len+1,ncol = length(x))
     L.vals = 2*(min.len:Smax)
     for(i in 1:(Smax-min.len+1)){
       tavc.ests[i,] = robust.tavc.est(x, L = 2*(min.len+i-1), M = M, b.max = min.len+i-2 , v.est.method = v.est.method,
-                                         global.est = global.est, window.len = 2*(min.len+i-1)*N3)
+                                      global.est = global.est, window.len = 2*(min.len+i-1)*N3)
     }
   }
-
+  
   
   wbs2.tavc.int = function(x, R = 100, min.len = 0, Smax, tavc.ests){
     
@@ -351,7 +342,7 @@ wbs2.tavc = function(x, R = 100, M = floor(2.5*sqrt(length(x))), v.est.method = 
   temp = sorted.cusums[,2]
   sorted.cusums[,2] = sorted.cusums[,3]
   sorted.cusums[,3] = temp
-
+  
   ret = list(solutions.nested = solutions.nested, solution.path = solution.path, 
              solution.set = solution.set, x = x, R = R, cands = sorted.cusums, 
              method = "wbs2", tavc.ests = list(L.vals = L.vals, ests = tavc.ests))
@@ -363,6 +354,48 @@ wbs2.tavc = function(x, R = 100, M = floor(2.5*sqrt(length(x))), v.est.method = 
   
 }
 
+
+
+
+
+robustfun = function(x)
+{
+  if (x >= 1)
+  {
+    y = log(2)
+    
+  }
+  
+  if ((x>= 0)&&(x<1))
+  {
+    y = - log(1-x+x^2/2)
+    
+  }
+  if ((x<=0)&& (x> -1))
+  {
+    y = log(1+x+x^2/2)
+    
+  }
+  if  (x<= -1)
+  {
+    y = -log(2)
+    
+  }
+  return(y)
+  
+}
+
+robustfun2 = function(x,c,alpha)
+{
+
+  y = x 
+  for (i in (1:length(x)))
+  {
+    y[i] = alpha^(-1)*robustfun(alpha*(x[i]-c))
+  }
+  ysum = sum(y)/length(x)
+  return(ysum)
+}
 
 systematic.cusums.tavc = function(x, R, min.len, Smax, tavc.ests){
   
