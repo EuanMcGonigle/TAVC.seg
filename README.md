@@ -11,7 +11,6 @@ To perform robust TAVC estimation, do the following:
 
 - Source main.R into `R`.
 - Read the description for `robust.tavc.est` within main.R.
--
 
 To perform mean change point detection with the robust TAVC estimation procedure
 
