@@ -14,7 +14,7 @@ robust.tavc.est = function(x, L, M = floor(2.5*sqrt(length(x))), b.max = min(flo
   # global.est - logical variable, set TRUE to calculate the TAVC estimator assuming stationarity of the error process. Set FALSE to
   #             compute a time-varying estimator of the TAVC.
   # window.len - if global.est = FALSE, then window.len sets the size of window over which the local TAVC is estimated.
-  # v.est.method - method of plug-in estimation for the varaiance parameter v. Recommended to choose trimmed.mean or median.
+  # v.est.method - method of plug-in estimation for the variance parameter v. Recommended to choose trimmed.mean or median.
 
   # For applying the bottom-up MOSUM or WBS2 algotihms with the robust TAVC estimation procedure, use the functions mosum.tavc and WBS2.tavc
   # NOTE: to apply the robust TAVC estimation with bottom-up MOSUM or WBS2, the code requires the R packages mosum and breakfast
