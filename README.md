@@ -2,8 +2,8 @@
 Robust multiscale time-average variance estimation for change point detection.
 
 Software accompanying 
-> E. T. McGonigle and H. Cho (2022) ["Robust multiscale estimation of time-average variance for time
-series segmentation".](https://arxiv.org/abs/2205.11496)
+> E. T. McGonigle and H. Cho (2023) ["Robust multiscale estimation of time-average variance for time
+series segmentation".](https://doi.org/10.1016/j.csda.2022.107648)
 
 - The main routines are contained in main.R. 
 
